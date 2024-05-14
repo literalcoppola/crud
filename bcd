@@ -1,0 +1,116 @@
+mysql -u root -p -h localhost -P 3306
+
+CREATE USER 'leticia'@'localhost' IDENTIFIED BY 'myapp';
+
+GRANT ALL PRIVILEGES ON *.* TO 'leticia'@'localhost';
+
+FLUSH PRIVILEGES;
+
+CREATE DATABASE myapp;
+
+------------------------------------------
+
+from mysql import connector as MyConnector
+from datetime import datetime
+
+def criar_tabela_aluno(conexao):
+    sql = """
+        CREATE TABLE IF NOT EXISTS aluno (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            nome VARCHAR(255),
+            nascimento DATE
+        )
+    """
+    cursor = conexao.cursor()
+    cursor.execute(sql)
+    cursor.close()
+
+def criar_novo_aluno(conexao):
+    nome = input("Digite o nome do aluno: ")
+    nascimento_input = input("Digite o nascimento no formado dd/mm/YYYY: ")
+    nascimento_date = datetime.strptime(nascimento_input, "%d/%m/%Y").date()
+
+    cursor = conexao.cursor()
+    sql = "INSERT INTO aluno (nome, nascimento) VALUES (%s, %s)"
+    cursor.execute(sql, (nome, nascimento_date))
+    conexao.commit()
+    cursor.close()
+
+
+def listar_alunos(conexao):
+    cursor = conexao.cursor()
+    sql = "SELECT id, nome, nascimento FROM aluno"
+    cursor.execute(sql)
+    resultado = cursor.fetchall()
+    cursor.close()
+
+    print("\nLista de alunos:")
+    for aluno in resultado:
+        print(f"ID: {aluno[0]}, Nome: {aluno[1]}, Nascimento: {aluno[2]}")
+
+def atualizar_aluno(conexao):
+    id_aluno = int(input("Digite o ID do aluno que deseja atualizar: "))
+    nome_novo = input("Digite o novo nome do aluno: ")
+    nascimento_novo_input = input("Digite o novo nascimento no formado dd/mm/YYYY: ")
+    nascimento_novo_date = datetime.strptime(nascimento_novo_input, "%d/%m/%Y").date()
+
+    cursor = conexao.cursor()
+    sql = "UPDATE aluno SET nome=%s, nascimento=%s WHERE id=%s"
+    cursor.execute(sql, (nome_novo, nascimento_novo_date, id_aluno))
+    conexao.commit()
+    cursor.close()
+
+def remover_aluno(conexao):
+    id_aluno = int(input("Digite o ID do aluno que deseja remover: "))
+
+    cursor = conexao.cursor()
+    sql = "DELETE FROM aluno WHERE id=%s"
+    cursor.execute(sql, (id_aluno,))
+    conexao.commit()
+    cursor.close()
+
+def sair():
+    print("Saindo...")
+    exit()
+
+if __name__ == "__main__":
+    try:
+        conexao = MyConnector.connect(
+            host='localhost',
+            user='leticiah',
+            password='myapp',
+            database='myapp',
+            port=3307,
+        )
+
+        if conexao.is_connected:
+            print('Conexao estabelecida')
+
+            criar_tabela_aluno(conexao)
+
+            while True:
+                print("\nEscolha uma opção:")
+                print("1. Criar novo aluno")
+                print("2. Listar alunos")
+                print("3. Atualizar aluno")
+                print("4. Remover aluno")
+                print("5. Sair")
+
+                opcao = int(input("Opção: "))
+
+                if opcao == 1:
+                    criar_novo_aluno(conexao)
+                elif opcao == 2:
+                    listar_alunos(conexao)
+                elif opcao == 3:
+                    atualizar_aluno(conexao)
+                elif opcao == 4:
+                    remover_aluno(conexao)
+                elif opcao == 5:
+                    sair()
+                else:
+                    print("Opção inválida. Tente novamente.")
+
+            conexao.close()
+    except MyConnector.Error as err:
+        print("Erro ao conectar ao MySQL: {0}".format(err))
